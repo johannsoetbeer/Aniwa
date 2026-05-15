@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Universal dataset profiling and intelligence tool"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Reginald Erzoah" }
 ]
@@ -24,3 +24,7 @@ dependencies = [
 
 [project.scripts]
 aniwa = "aniwa.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["aniwa*"]
+exclude = ["assets*", "tests*", "examples*"]
