@@ -331,6 +331,19 @@ Aniwa/
 
 ---
 
+## v0.1.2 - More Outputs & File Supports
+
+- Markdown report
+- CSV summary report
+- PDF report
+- Excel report
+- charts in HTML
+- report templates
+- custom report sections
+
+
+---
+
 ## v0.2.0 - Intelligence Release
 
 - correlation analysis
