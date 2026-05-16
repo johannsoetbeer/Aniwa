@@ -1,6 +1,6 @@
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 from aniwa.models.profile import DatasetProfile
 
@@ -13,7 +13,8 @@ def render_console_report(profile: DatasetProfile) -> None:
         Panel.fit(
             f"[bold]Rows:[/bold] {profile.summary.rows}\n"
             f"[bold]Columns:[/bold] {profile.summary.columns}\n"
-            f"[bold]Duplicate Rows:[/bold] {profile.quality.duplicate_rows}",
+            f"[bold]Duplicate Rows:[/bold] {profile.quality.duplicate_rows}\n"
+            f"[bold]Duplicate %:[/bold] {profile.quality.duplicate_percent}%",
             title="Aniwa Dataset Profile",
         )
     )
@@ -35,6 +36,30 @@ def render_console_report(profile: DatasetProfile) -> None:
         )
 
     console.print(table)
+
+    numeric_columns = [col for col in profile.columns if col.numeric_stats]
+
+    if numeric_columns:
+        stats_table = Table(title="Numeric Statistics")
+        stats_table.add_column("Column")
+        stats_table.add_column("Min")
+        stats_table.add_column("Max")
+        stats_table.add_column("Mean")
+        stats_table.add_column("Median")
+        stats_table.add_column("Std")
+
+        for col in numeric_columns:
+            stats = col.numeric_stats
+            stats_table.add_row(
+                col.name,
+                str(stats.min),
+                str(stats.max),
+                str(stats.mean),
+                str(stats.median),
+                str(stats.std),
+            )
+
+        console.print(stats_table)
 
     if profile.insights:
         insight_table = Table(title="Insights")

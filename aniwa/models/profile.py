@@ -6,12 +6,21 @@ class DatasetSummary(BaseModel):
     columns: int
 
 
+class NumericStats(BaseModel):
+    min: float | None = None
+    max: float | None = None
+    mean: float | None = None
+    median: float | None = None
+    std: float | None = None
+
+
 class ColumnProfile(BaseModel):
     name: str
     dtype: str
     null_count: int
     null_percent: float
     unique_count: int
+    numeric_stats: NumericStats | None = None
 
 
 class QualityProfile(BaseModel):

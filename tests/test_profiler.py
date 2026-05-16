@@ -44,3 +44,22 @@ def test_duplicate_detection():
     profile = profile_dataframe(df)
 
     assert profile.quality.duplicate_rows == 1
+
+
+def test_numeric_statistics():
+    df = pl.DataFrame(
+        {
+            "revenue": [100, 200, 300, 400],
+            "name": ["Ama", "Kofi", "Yaw", "Akosua"],
+        }
+    )
+
+    profile = profile_dataframe(df)
+
+    revenue_profile = next(col for col in profile.columns if col.name == "revenue")
+
+    assert revenue_profile.numeric_stats is not None
+    assert revenue_profile.numeric_stats.min == 100.0
+    assert revenue_profile.numeric_stats.max == 400.0
+    assert revenue_profile.numeric_stats.mean == 250.0
+    assert revenue_profile.numeric_stats.median == 250.0

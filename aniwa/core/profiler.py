@@ -1,12 +1,27 @@
 import polars as pl
 
 from aniwa.models.profile import (
+    ColumnProfile,
     DatasetProfile,
     DatasetSummary,
-    ColumnProfile,
-    QualityProfile,
     Insight,
+    NumericStats,
+    QualityProfile,
 )
+
+
+NUMERIC_DTYPES = {
+    pl.Int8,
+    pl.Int16,
+    pl.Int32,
+    pl.Int64,
+    pl.UInt8,
+    pl.UInt16,
+    pl.UInt32,
+    pl.UInt64,
+    pl.Float32,
+    pl.Float64,
+}
 
 
 def profile_dataframe(df: pl.DataFrame) -> DatasetProfile:
@@ -16,17 +31,31 @@ def profile_dataframe(df: pl.DataFrame) -> DatasetProfile:
     column_profiles: list[ColumnProfile] = []
 
     for col in df.columns:
-        null_count = df[col].null_count()
+        series = df[col]
+
+        null_count = series.null_count()
         null_percent = round((null_count / rows) * 100, 2) if rows else 0
-        unique_count = df[col].n_unique()
+        unique_count = series.n_unique()
+
+        numeric_stats = None
+
+        if series.dtype in NUMERIC_DTYPES:
+            numeric_stats = NumericStats(
+                min=_safe_float(series.min()),
+                max=_safe_float(series.max()),
+                mean=_safe_float(series.mean()),
+                median=_safe_float(series.median()),
+                std=_safe_float(series.std()),
+            )
 
         column_profiles.append(
             ColumnProfile(
                 name=col,
-                dtype=str(df[col].dtype),
+                dtype=str(series.dtype),
                 null_count=null_count,
                 null_percent=null_percent,
                 unique_count=unique_count,
+                numeric_stats=numeric_stats,
             )
         )
 
@@ -44,6 +73,16 @@ def profile_dataframe(df: pl.DataFrame) -> DatasetProfile:
         ),
         insights=insights,
     )
+
+
+def _safe_float(value: object) -> float | None:
+    if value is None:
+        return None
+
+    try:
+        return round(float(value), 4)
+    except (TypeError, ValueError):
+        return None
 
 
 def generate_insights(
