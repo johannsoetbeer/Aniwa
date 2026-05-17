@@ -149,31 +149,6 @@ Future versions of Aniwa aim to provide:
 
 ---
 
-## Beautiful
-
-Developer tools should feel modern and thoughtfully designed.
-
-Aniwa emphasizes clarity, readability, and visual quality across:
-- terminal output
-- HTML reports
-- documentation
-- branding
-- user interactions
-
-### What This Means
-
-- polished Rich terminal interfaces
-- clean report layouts
-- readable typography
-- strong visual hierarchy
-- modern branding
-
-### Guiding Belief
-
-> Beautiful tools improve usability, trust, and adoption.
-
----
-
 ## Automation-Friendly
 
 Aniwa is designed to integrate naturally into modern engineering workflows.
