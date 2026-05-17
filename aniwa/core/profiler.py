@@ -1,5 +1,6 @@
 import polars as pl
 
+from aniwa.models.enums import ReportSection
 from aniwa.models.profile import (
     ColumnProfile,
     DatasetProfile,
@@ -24,53 +25,77 @@ NUMERIC_DTYPES = {
 }
 
 
-def profile_dataframe(df: pl.DataFrame, mode: str = "deep") -> DatasetProfile:
+def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[ReportSection] | None = None,) -> DatasetProfile:
+    if sections is None:
+        sections = set(ReportSection)
+
     rows = df.height
     columns = df.width
 
-    column_profiles: list[ColumnProfile] = []
+    summary = None
+    if ReportSection.summary in sections:
+        summary = DatasetSummary(rows=rows, columns=columns)
 
-    for col in df.columns:
-        series = df[col]
+    column_profiles = None
+    if (
+            ReportSection.schema in sections
+            or ReportSection.statistics in sections
+            or ReportSection.quality in sections
+            or ReportSection.insights in sections
+    ):
+        column_profiles = []
 
-        null_count = series.null_count()
-        null_percent = round((null_count / rows) * 100, 2) if rows else 0
-        unique_count = series.n_unique()
+        for col in df.columns:
+            series = df[col]
 
-        numeric_stats = None
+            null_count = series.null_count()
+            null_percent = round((null_count / rows) * 100, 2) if rows else 0
+            unique_count = series.n_unique()
 
-        if mode == "deep" and series.dtype in NUMERIC_DTYPES:
-            numeric_stats = NumericStats(
-                min=_safe_float(series.min()),
-                max=_safe_float(series.max()),
-                mean=_safe_float(series.mean()),
-                median=_safe_float(series.median()),
-                std=_safe_float(series.std()),
+            numeric_stats = None
+
+            if ReportSection.statistics in sections and mode == "deep" and series.dtype in NUMERIC_DTYPES:
+                numeric_stats = NumericStats(
+                    min=_safe_float(series.min()),
+                    max=_safe_float(series.max()),
+                    mean=_safe_float(series.mean()),
+                    median=_safe_float(series.median()),
+                    std=_safe_float(series.std()),
+                )
+
+            column_profiles.append(
+                ColumnProfile(
+                    name=col,
+                    dtype=str(series.dtype),
+                    null_count=null_count,
+                    null_percent=null_percent,
+                    unique_count=unique_count,
+                    numeric_stats=numeric_stats,
+                )
             )
 
-        column_profiles.append(
-            ColumnProfile(
-                name=col,
-                dtype=str(series.dtype),
-                null_count=null_count,
-                null_percent=null_percent,
-                unique_count=unique_count,
-                numeric_stats=numeric_stats,
-            )
-        )
+    duplicate_rows = 0
+    duplicate_percent = 0
 
-    duplicate_rows = rows - df.unique().height
-    duplicate_percent = round((duplicate_rows / rows) * 100, 2) if rows else 0
+    if ReportSection.quality in sections or ReportSection.insights in sections:
+        duplicate_rows = rows - df.unique().height
+        duplicate_percent = round((duplicate_rows / rows) * 100, 2) if rows else 0
 
-    insights = generate_insights(column_profiles, duplicate_rows, rows)
-
-    return DatasetProfile(
-        summary=DatasetSummary(rows=rows, columns=columns),
-        columns=column_profiles,
-        quality=QualityProfile(
+    quality = None
+    if ReportSection.quality in sections:
+        quality = QualityProfile(
             duplicate_rows=duplicate_rows,
             duplicate_percent=duplicate_percent,
-        ),
+        )
+
+    insights = None
+    if ReportSection.insights in sections:
+        insights = generate_insights(column_profiles or [], duplicate_rows, rows)
+
+    return DatasetProfile(
+        summary=summary,
+        columns=column_profiles,
+        quality=quality,
         insights=insights,
     )
 

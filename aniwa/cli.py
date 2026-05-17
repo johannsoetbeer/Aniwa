@@ -36,6 +36,23 @@ def validate_sections(value: str | None) -> list[str] | None:
 
     return split_sections
 
+def resolve_sections(include: str | None,exclude: str | None,) -> set[ReportSection]:
+    include_sections = validate_sections(include)
+    exclude_sections = validate_sections(exclude)
+
+    if include_sections and exclude_sections:
+        raise typer.BadParameter("Use either --include or --exclude, not both.")
+
+    all_sections = {section for section in ReportSection}
+
+    if include_sections:
+        return {ReportSection(section) for section in include_sections}
+
+    if exclude_sections:
+        return all_sections - {ReportSection(section) for section in exclude_sections}
+
+    return all_sections
+
 @app.command()
 def profile(
     path: str = typer.Argument(..., help="Path to dataset file."),
@@ -61,30 +78,19 @@ def profile(
         None,
         "--include",
         "-i",
-        help="Comma-separated list of columns to include in the report.",
+        help="Comma-separated list of report sections to include.",
     ),
     exclude: str | None = typer.Option(
         None,
         "--exclude",
         "-e",
-        help="Comma-separated list of columns to exclude from the report.",
+        help="Comma-separated list of report sections to exclude.",
     )
 ):
     """
     Profile a dataset.
     """
-    include = validate_sections(include)
-    exclude = validate_sections(exclude)
-
-    sections: list[str] | None = None
-
-    if include or exclude:
-        sections = []
-        base = [e.value for e in ReportSection] if not include else include
-
-        for item in base:
-            if item not in (exclude or []):
-                sections.append(item)
+    sections = resolve_sections(include, exclude)
 
     dataset_path = Path(path)
 

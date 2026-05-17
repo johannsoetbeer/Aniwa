@@ -1,6 +1,7 @@
 import polars as pl
 
 from aniwa.core.profiler import profile_dataframe
+from aniwa.models.enums import ReportSection
 
 
 def test_profile_dataframe_summary():
@@ -63,3 +64,30 @@ def test_numeric_statistics():
     assert revenue_profile.numeric_stats.max == 400.0
     assert revenue_profile.numeric_stats.mean == 250.0
     assert revenue_profile.numeric_stats.median == 250.0
+
+def test_profile_dataframe_can_include_only_summary():
+    df = pl.DataFrame({"id": [1, 2, 3]})
+
+    profile = profile_dataframe(df, sections={ReportSection.summary})
+
+    assert profile.summary is not None
+    assert profile.columns is None
+    assert profile.quality is None
+    assert profile.insights is None
+
+def test_profile_dataframe_can_exclude_statistics():
+    df = pl.DataFrame({"revenue": [100, 200, 300]})
+
+    profile = profile_dataframe(
+        df,
+        sections={
+            ReportSection.summary,
+            ReportSection.schema,
+            ReportSection.quality,
+            ReportSection.insights,
+        },
+    )
+
+    revenue_profile = next(col for col in profile.columns if col.name == "revenue")
+
+    assert revenue_profile.numeric_stats is None

@@ -2,6 +2,8 @@ from enum import Enum
 
 class ReportSection(str, Enum):
     summary = "summary"
-    columns = "columns"
+    schema = "schema"
+    statistics = "statistics"
     quality = "quality"
     insights = "insights"
+    charts = "charts"
