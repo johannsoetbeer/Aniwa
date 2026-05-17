@@ -394,6 +394,8 @@ Aniwa is built around a few core principles:
 - beautiful
 - automation-friendly
 
+For more details on philosophy, visit docs/
+
 ---
 
 
