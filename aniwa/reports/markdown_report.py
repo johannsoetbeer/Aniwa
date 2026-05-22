@@ -31,15 +31,18 @@ def _render_metadata(profile: DatasetProfile) -> str:
         return ""
 
     metadata = profile.metadata
-
     rows = []
 
     _append_metadata_row(rows, "Generated At", metadata.generated_at)
     _append_metadata_row(rows, "Aniwa Version", metadata.aniwa_version)
     _append_metadata_row(rows, "Python Version", metadata.python_version)
+    _append_metadata_row(rows, "Operating System", metadata.operating_system)
+    _append_metadata_row(rows, "Polars Version", metadata.polars_version)
+
     _append_metadata_row(rows, "Dataset Path", metadata.dataset_path)
     _append_metadata_row(rows, "Dataset File Type", metadata.dataset_file_type)
     _append_metadata_row(rows, "Dataset Size", metadata.dataset_size)
+
     _append_metadata_row(rows, "Profiling Mode", metadata.profiling_mode)
     _append_metadata_row(rows, "Report Format", metadata.report_format)
     _append_metadata_row(rows, "Report Template", metadata.report_template)
@@ -58,11 +61,8 @@ def _render_metadata(profile: DatasetProfile) -> str:
             ", ".join(metadata.excluded_sections),
         )
 
-    _append_metadata_row(
-        rows,
-        "Profiling Duration",
-        metadata.profiling_duration,
-    )
+    _append_metadata_row(rows, "Profiling Duration", metadata.profiling_duration)
+    _append_metadata_row(rows, "Command Used", metadata.command_used)
 
     return (
         "## Profiling Metadata\n"
