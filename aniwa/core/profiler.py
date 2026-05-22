@@ -1,4 +1,5 @@
 import polars as pl
+import time
 
 from aniwa.models.enums import ReportSection
 from aniwa.models.profile import (
@@ -26,6 +27,8 @@ NUMERIC_DTYPES = {
 
 
 def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[ReportSection] | None = None,) -> DatasetProfile:
+    start_time = time.time()
+
     if sections is None:
         sections = set(ReportSection)
 
@@ -92,11 +95,16 @@ def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[Report
     if ReportSection.insights in sections:
         insights = generate_insights(column_profiles or [], duplicate_rows, rows)
 
+    end_time = time.time()
+
+    duration = round(end_time - start_time, 4)
+
     return DatasetProfile(
         summary=summary,
         columns=column_profiles,
         quality=quality,
         insights=insights,
+        duration=duration
     )
 
 
