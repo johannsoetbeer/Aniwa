@@ -33,8 +33,24 @@ class Insight(BaseModel):
     message: str
 
 
+class ProfileMetadata(BaseModel):
+    generated_at: str | None = None
+    aniwa_version: str | None = None
+    python_version: str | None = None
+    dataset_path: str | None = None
+    dataset_file_type: str | None = None
+    dataset_size: str | None = None
+    profiling_mode: str | None = None
+    report_format: str | None = None
+    report_template: str | None = None
+    included_sections: list[str] | None = None
+    excluded_sections: list[str] | None = None
+    profiling_duration: str | None = None
+
+
 class DatasetProfile(BaseModel):
     summary: DatasetSummary | None = None
     columns: list[ColumnProfile] | None = None
     quality: QualityProfile | None = None
     insights: list[Insight] | None = None
+    metadata: ProfileMetadata | None = None
