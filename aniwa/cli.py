@@ -152,7 +152,10 @@ def profile(
         if output is None:
             output = "aniwa_report.xlsx"
 
-        render_excel_report(dataset_profile, output)
+        try:
+            render_excel_report(dataset_profile, output)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
         typer.echo(f"Excel report written to {output}")
         return
 
@@ -170,6 +173,10 @@ def profile(
         if output is None:
             output = "aniwa_report.pdf"
 
-        render_pdf_report(dataset_profile, output)
+        try:
+            render_pdf_report(dataset_profile, output, template=template)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
         typer.echo(f"PDF report written to {output}")
         return
