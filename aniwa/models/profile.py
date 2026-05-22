@@ -64,3 +64,4 @@ class DatasetProfile(BaseModel):
     quality: QualityProfile | None = None
     insights: list[Insight] | None = None
     metadata: ProfileMetadata | None = None
+    duration: float | None = None
