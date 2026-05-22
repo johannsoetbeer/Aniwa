@@ -102,6 +102,12 @@ def profile(
         "-e",
         help="Comma-separated list of report sections to exclude.",
     ),
+    template: str = typer.Option(
+        "default",
+        "--template",
+        "-t",
+        help="HTML report template. Options: default, clean, compact, enterprise, dark.",
+    ),
 ):
     """
     Profile a dataset.
@@ -134,7 +140,11 @@ def profile(
         if output is None:
             output = "aniwa_report.html"
 
-        render_html_report(dataset_profile, output)
+        try:
+            render_html_report(dataset_profile, output, template=template)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
         typer.echo(f"HTML report written to {output}")
         return
 

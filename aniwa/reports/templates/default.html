@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aniwa Dataset Profile</title>
+    <style>
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 36px;
+        }
+
+        .header p {
+            color: #475569;
+            font-size: 16px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+        }
+
+        .card .label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .card .value {
+            font-size: 30px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        section {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            background: #f1f5f9;
+            color: #334155;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .footer {
+            color: #64748b;
+            font-size: 13px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Aniwa Dataset Profile</h1>
+        <p>Universal dataset profiling and intelligence report.</p>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <div class="label">Rows</div>
+            <div class="value">{{ profile.summary.rows }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Columns</div>
+            <div class="value">{{ profile.summary.columns }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Duplicate Rows</div>
+            <div class="value">{{ profile.quality.duplicate_rows }}</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Duplicate %</div>
+            <div class="value">{{ profile.quality.duplicate_percent }}%</div>
+        </div>
+    </div>
+
+    <section>
+        <h2>Column Profile</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Nulls</th>
+                <th>Null %</th>
+                <th>Unique</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for col in profile.columns %}
+            <tr>
+                <td>{{ col.name }}</td>
+                <td>{{ col.dtype }}</td>
+                <td>{{ col.null_count }}</td>
+                <td>{{ col.null_percent }}%</td>
+                <td>{{ col.unique_count }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    {% set numeric_columns = profile.columns | selectattr("numeric_stats") | list %}
+    {% if numeric_columns %}
+    <section>
+        <h2>Numeric Statistics</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Column</th>
+                <th>Min</th>
+                <th>Max</th>
+                <th>Mean</th>
+                <th>Median</th>
+                <th>Std</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for col in numeric_columns %}
+            <tr>
+                <td>{{ col.name }}</td>
+                <td>{{ col.numeric_stats.min }}</td>
+                <td>{{ col.numeric_stats.max }}</td>
+                <td>{{ col.numeric_stats.mean }}</td>
+                <td>{{ col.numeric_stats.median }}</td>
+                <td>{{ col.numeric_stats.std }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if profile.insights %}
+    <section>
+        <h2>Insights</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Level</th>
+                <th>Message</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for insight in profile.insights %}
+            <tr>
+                <td>
+                    <span class="badge {{ insight.level }}">
+                        {{ insight.level }}
+                    </span>
+                </td>
+                <td>{{ insight.message }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    <div class="footer">
+        Generated by Aniwa - See your data clearly.
+    </div>
+</div>
+</body>
+</html>
