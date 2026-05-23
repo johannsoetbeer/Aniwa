@@ -23,6 +23,7 @@ def render_html_report(
 
     if template not in AVAILABLE_TEMPLATES:
         valid_templates = ", ".join(AVAILABLE_TEMPLATES)
+
         raise ValueError(
             f"Invalid HTML report template: {template}. "
             f"Valid templates are: {valid_templates}."
@@ -33,10 +34,23 @@ def render_html_report(
         autoescape=select_autoescape(["html", "xml"]),
     )
 
-    html_template = env.get_template(AVAILABLE_TEMPLATES[template])
+    html_template = env.get_template(
+        AVAILABLE_TEMPLATES[template]
+    )
+
     html = html_template.render(profile=profile)
 
     if output:
-        Path(output).write_text(html, encoding="utf-8")
+        output_path = Path(output)
+
+        output_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        output_path.write_text(
+            html,
+            encoding="utf-8",
+        )
 
     return html
