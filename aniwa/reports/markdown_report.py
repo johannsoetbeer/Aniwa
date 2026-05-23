@@ -95,6 +95,7 @@ def _render_summary(profile: DatasetProfile) -> str:
         f"| Columns | {profile.summary.columns:,} |"
     )
 
+
 def _render_columns(profile: DatasetProfile) -> str:
     if not profile.columns:
         return ""
@@ -163,7 +164,7 @@ def _render_quality(profile: DatasetProfile) -> str:
 def _render_insights(profile: DatasetProfile) -> str:
     if profile.insights is None:
         return ""
-    
+
     if len(profile.insights) == 0:
         return "## Insights\nNo major issues detected."
 
