@@ -35,14 +35,10 @@ def load_config(
         return config_data
 
     except ValueError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return {}
+        raise ValueError(f"Error parsing config file '{file_path}': {exc}")
 
     except Exception as exc:
-        print(f"Failed to parse {suffix} config: {exc}", file=sys.stderr)
-        return {}
-
-    return {}
+        raise ValueError(f"Error parsing config file '{file_path}': {exc}")
 
 
 def _read_config(path: pathlib.Path, suffix: str) -> dict[str, Any]:
@@ -71,19 +67,25 @@ def _read_config(path: pathlib.Path, suffix: str) -> dict[str, Any]:
 
     return {}
 
-def get_flattened_config(file_path: str) -> dict:
+def get_flattened_config(file_path: str) -> dict[str, Any]:
     raw = load_config(file_path)
+    if not raw:
+        return {}
+        
     flattened = {}
     
-    if "mode" in raw: flattened["mode"] = raw["mode"]
-    
-    if "report" in raw:
-        report = raw["report"]
-        flattened["report"] = report.get("format")
-        flattened["template"] = report.get("template")
-        flattened["output"] = report.get("output_dir")
+    if "mode" in raw:
+        if raw["mode"] not in ["fast", "deep"]:
+            raise ValueError(f"Invalid mode in config: {raw['mode']}. Use 'fast' or 'deep'.")
+        flattened["mode"] = raw["mode"]
         
-    if "sections" in raw:
+    if "report" in raw and isinstance(raw["report"], dict):
+        report = raw["report"]
+        if "format" in report: flattened["report"] = report["format"]
+        if "template" in report: flattened["template"] = report["template"]
+        if "output_dir" in report: flattened["output"] = report["output_dir"]
+        
+    if "sections" in raw and isinstance(raw["sections"], dict):
         sections = raw["sections"]
         if isinstance(sections.get("include"), list):
             flattened["include"] = ",".join(sections["include"])

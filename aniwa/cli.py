@@ -205,7 +205,11 @@ def find_config_file():
 
 def get_config():
     file = find_config_file()
-    return get_flattened_config(file) if file else {}
+    try:
+        return get_flattened_config(file) if file else {}
+    except ValueError as e:
+        typer.secho(f"Configuration Error: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
 config = get_config()
 
