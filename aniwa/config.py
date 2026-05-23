@@ -13,7 +13,6 @@ except ModuleNotFoundError:
     except ImportError:
         tomllib = None
 
-
 def load_config(
     file_path: str,
     env: str | None = None,
@@ -71,3 +70,24 @@ def _read_config(path: pathlib.Path, suffix: str) -> dict[str, Any]:
             return {}
 
     return {}
+
+def get_flattened_config(file_path: str) -> dict:
+    raw = load_config(file_path)
+    flattened = {}
+    
+    if "mode" in raw: flattened["mode"] = raw["mode"]
+    
+    if "report" in raw:
+        report = raw["report"]
+        flattened["report"] = report.get("format")
+        flattened["template"] = report.get("template")
+        flattened["output"] = report.get("output_dir")
+        
+    if "sections" in raw:
+        sections = raw["sections"]
+        if isinstance(sections.get("include"), list):
+            flattened["include"] = ",".join(sections["include"])
+        if isinstance(sections.get("exclude"), list):
+            flattened["exclude"] = ",".join(sections["exclude"])
+            
+    return flattened

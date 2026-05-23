@@ -19,7 +19,7 @@ from aniwa.reports.html_report import render_html_report
 from aniwa.reports.json_report import render_json_report
 from aniwa.reports.markdown_report import render_markdown_report
 from aniwa.reports.pdf_report import render_pdf_report
-from aniwa.config import load_config
+from aniwa.config import get_flattened_config
 
 
 app = typer.Typer(help="Aniwa - Universal dataset profiling and intelligence.")
@@ -204,16 +204,8 @@ def find_config_file():
     return None
 
 def get_config():
-    config_file = find_config_file()
-    if config_file:
-        cfg = load_config(config_file)
-        # Falls 'include' eine Liste ist, in String umwandeln für Typer
-        if isinstance(cfg.get("include"), list):
-            cfg["include"] = ",".join(cfg["include"])
-        if isinstance(cfg.get("exclude"), list):
-            cfg["exclude"] = ",".join(cfg["exclude"])
-        return cfg
-    return {}
+    file = find_config_file()
+    return get_flattened_config(file) if file else {}
 
 config = get_config()
 
