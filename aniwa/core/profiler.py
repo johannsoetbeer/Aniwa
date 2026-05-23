@@ -25,7 +25,11 @@ NUMERIC_DTYPES = {
 }
 
 
-def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[ReportSection] | None = None,) -> DatasetProfile:
+def profile_dataframe(
+    df: pl.DataFrame,
+    mode: str = "deep",
+    sections: set[ReportSection] | None = None,
+) -> DatasetProfile:
     if sections is None:
         sections = set(ReportSection)
 
@@ -34,52 +38,28 @@ def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[Report
 
     summary = None
     if ReportSection.summary in sections:
-        summary = DatasetSummary(rows=rows, columns=columns)
+        summary = DatasetSummary(
+            rows=rows,
+            columns=columns,
+        )
+
+    needs_column_profiles = _needs_column_profiles(sections)
 
     column_profiles = None
-    if (
-            ReportSection.schema in sections
-            or ReportSection.statistics in sections
-            or ReportSection.quality in sections
-            or ReportSection.insights in sections
-    ):
-        column_profiles = []
-
-        for col in df.columns:
-            series = df[col]
-
-            null_count = series.null_count()
-            null_percent = round((null_count / rows) * 100, 2) if rows else 0
-            unique_count = series.n_unique()
-
-            numeric_stats = None
-
-            if ReportSection.statistics in sections and mode == "deep" and series.dtype in NUMERIC_DTYPES:
-                numeric_stats = NumericStats(
-                    min=_safe_float(series.min()),
-                    max=_safe_float(series.max()),
-                    mean=_safe_float(series.mean()),
-                    median=_safe_float(series.median()),
-                    std=_safe_float(series.std()),
-                )
-
-            column_profiles.append(
-                ColumnProfile(
-                    name=col,
-                    dtype=str(series.dtype),
-                    null_count=null_count,
-                    null_percent=null_percent,
-                    unique_count=unique_count,
-                    numeric_stats=numeric_stats,
-                )
-            )
+    if needs_column_profiles:
+        column_profiles = _profile_columns(
+            df=df,
+            rows=rows,
+            mode=mode,
+            include_statistics=ReportSection.statistics in sections,
+        )
 
     duplicate_rows = 0
-    duplicate_percent = 0
+    duplicate_percent = 0.0
 
-    if ReportSection.quality in sections or ReportSection.insights in sections:
+    if _needs_duplicate_analysis(sections):
         duplicate_rows = rows - df.unique().height
-        duplicate_percent = round((duplicate_rows / rows) * 100, 2) if rows else 0
+        duplicate_percent = round((duplicate_rows / rows) * 100, 2) if rows else 0.0
 
     quality = None
     if ReportSection.quality in sections:
@@ -90,7 +70,11 @@ def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[Report
 
     insights = None
     if ReportSection.insights in sections:
-        insights = generate_insights(column_profiles or [], duplicate_rows, rows)
+        insights = generate_insights(
+            columns=column_profiles or [],
+            duplicate_rows=duplicate_rows,
+            total_rows=rows,
+        )
 
     return DatasetProfile(
         summary=summary,
@@ -98,6 +82,69 @@ def profile_dataframe(df: pl.DataFrame, mode: str = "deep", sections: set[Report
         quality=quality,
         insights=insights,
     )
+
+
+def _needs_column_profiles(sections: set[ReportSection]) -> bool:
+    return any(
+        section in sections
+        for section in {
+            ReportSection.schema,
+            ReportSection.statistics,
+            ReportSection.insights,
+            ReportSection.charts,
+        }
+    )
+
+
+def _needs_duplicate_analysis(sections: set[ReportSection]) -> bool:
+    return any(
+        section in sections
+        for section in {
+            ReportSection.quality,
+            ReportSection.insights,
+            ReportSection.charts,
+        }
+    )
+
+
+def _profile_columns(
+    df: pl.DataFrame,
+    rows: int,
+    mode: str,
+    include_statistics: bool,
+) -> list[ColumnProfile]:
+    column_profiles: list[ColumnProfile] = []
+
+    for col in df.columns:
+        series = df[col]
+
+        null_count = series.null_count()
+        null_percent = round((null_count / rows) * 100, 2) if rows else 0.0
+        unique_count = series.n_unique()
+
+        numeric_stats = None
+
+        if include_statistics and mode == "deep" and series.dtype in NUMERIC_DTYPES:
+            numeric_stats = NumericStats(
+                min=_safe_float(series.min()),
+                max=_safe_float(series.max()),
+                mean=_safe_float(series.mean()),
+                median=_safe_float(series.median()),
+                std=_safe_float(series.std()),
+            )
+
+        column_profiles.append(
+            ColumnProfile(
+                name=col,
+                dtype=str(series.dtype),
+                null_count=null_count,
+                null_percent=null_percent,
+                unique_count=unique_count,
+                numeric_stats=numeric_stats,
+            )
+        )
+
+    return column_profiles
 
 
 def _safe_float(value: object) -> float | None:
@@ -128,9 +175,6 @@ def generate_insights(
     for col in columns:
         column_name = col.name.lower()
 
-        #
-        # High null percentage
-        #
         if col.null_percent >= 75:
             insights.append(
                 Insight(
@@ -153,22 +197,14 @@ def generate_insights(
                 )
             )
 
-        #
-        # Constant columns
-        #
         if col.unique_count == 1:
             insights.append(
                 Insight(
                     level="warning",
-                    message=(
-                        f"Column '{col.name}' contains only one unique value."
-                    ),
+                    message=f"Column '{col.name}' contains only one unique value.",
                 )
             )
 
-        #
-        # Possible unique identifiers
-        #
         if (
             col.unique_count == total_rows
             and total_rows > 0
@@ -177,15 +213,10 @@ def generate_insights(
             insights.append(
                 Insight(
                     level="info",
-                    message=(
-                        f"Column '{col.name}' may be a unique identifier."
-                    ),
+                    message=f"Column '{col.name}' may be a unique identifier.",
                 )
             )
 
-        #
-        # High cardinality detection
-        #
         if total_rows > 0:
             cardinality_ratio = col.unique_count / total_rows
 
@@ -193,15 +224,10 @@ def generate_insights(
                 insights.append(
                     Insight(
                         level="info",
-                        message=(
-                            f"Column '{col.name}' has very high cardinality."
-                        ),
+                        message=f"Column '{col.name}' has very high cardinality.",
                     )
                 )
 
-        #
-        # Potential PII detection
-        #
         pii_keywords = [
             "email",
             "phone",
@@ -217,34 +243,21 @@ def generate_insights(
             insights.append(
                 Insight(
                     level="warning",
-                    message=(
-                        f"Column '{col.name}' may contain sensitive information."
-                    ),
+                    message=f"Column '{col.name}' may contain sensitive information.",
                 )
             )
 
-        #
-        # Numeric statistics insights
-        #
         if col.numeric_stats:
             stats = col.numeric_stats
 
-            #
-            # Negative values
-            #
             if stats.min is not None and stats.min < 0:
                 insights.append(
                     Insight(
                         level="info",
-                        message=(
-                            f"Column '{col.name}' contains negative values."
-                        ),
+                        message=f"Column '{col.name}' contains negative values.",
                     )
                 )
 
-            #
-            # Large spread detection
-            #
             if (
                 stats.mean is not None
                 and stats.std is not None
@@ -256,9 +269,7 @@ def generate_insights(
                     insights.append(
                         Insight(
                             level="info",
-                            message=(
-                                f"Column '{col.name}' shows high variability."
-                            ),
+                            message=f"Column '{col.name}' shows high variability.",
                         )
                     )
 
