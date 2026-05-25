@@ -71,9 +71,11 @@ def test_cli_invalid_exclude_section(tmp_path):
     assert "Invalid report section: unknown_block" in result.output
 
 
-def test_cli_json_include_summary_only(tmp_path):
+def test_cli_json_include_summary_only(tmp_path, monkeypatch):
     csv_path = tmp_path / "customers.csv"
     write_csv(csv_path)
+    # CLI now writes a default JSON file when no --output is provided.
+    monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
         app,
@@ -86,17 +88,25 @@ def test_cli_json_include_summary_only(tmp_path):
         ],
     )
 
+    expected_file = tmp_path / "aniwa_report.json"
+
     assert result.exit_code == 0
-    assert '"summary"' in result.output
-    assert '"rows"' in result.output
-    assert '"columns"' in result.output
-    assert '"quality"' not in result.output
-    assert '"insights"' not in result.output
+    assert "JSON report written to" in result.output
+    assert expected_file.exists()
+
+    content = expected_file.read_text(encoding="utf-8")
+    assert '"summary"' in content
+    assert '"rows"' in content
+    assert '"columns"' in content
+    assert '"quality"' not in content
+    assert '"insights"' not in content
 
 
-def test_cli_json_include_summary_and_insights(tmp_path):
+def test_cli_json_include_summary_and_insights(tmp_path, monkeypatch):
     csv_path = tmp_path / "customers.csv"
     write_csv(csv_path)
+    # CLI now writes a default JSON file when no --output is provided.
+    monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
         app,
@@ -109,15 +119,23 @@ def test_cli_json_include_summary_and_insights(tmp_path):
         ],
     )
 
+    expected_file = tmp_path / "aniwa_report.json"
+
     assert result.exit_code == 0
-    assert '"summary"' in result.output
-    assert '"insights"' in result.output
-    assert '"quality"' not in result.output
+    assert "JSON report written to" in result.output
+    assert expected_file.exists()
+
+    content = expected_file.read_text(encoding="utf-8")
+    assert '"summary"' in content
+    assert '"insights"' in content
+    assert '"quality"' not in content
 
 
-def test_cli_json_exclude_statistics(tmp_path):
+def test_cli_json_exclude_statistics(tmp_path, monkeypatch):
     csv_path = tmp_path / "customers.csv"
     write_csv(csv_path)
+    # CLI now writes a default JSON file when no --output is provided.
+    monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
         app,
@@ -130,11 +148,17 @@ def test_cli_json_exclude_statistics(tmp_path):
         ],
     )
 
+    expected_file = tmp_path / "aniwa_report.json"
+
     assert result.exit_code == 0
-    assert '"summary"' in result.output
-    assert '"quality"' in result.output
-    assert '"insights"' in result.output
-    assert '"numeric_stats"' not in result.output
+    assert "JSON report written to" in result.output
+    assert expected_file.exists()
+
+    content = expected_file.read_text(encoding="utf-8")
+    assert '"summary"' in content
+    assert '"quality"' in content
+    assert '"insights"' in content
+    assert '"numeric_stats"' not in content
 
 
 def test_cli_html_include_summary_and_insights(tmp_path):
@@ -263,10 +287,12 @@ def test_cli_html_exclude_charts(tmp_path):
     assert "aniwa-default-chart-data" not in html
 
 
-def test_cli_markdown_include_summary_only(tmp_path):
+def test_cli_markdown_include_summary_only(tmp_path, monkeypatch):
     csv_path = tmp_path / "customers.csv"
 
     write_csv(csv_path)
+    # CLI now writes a default Markdown file when no --output is provided.
+    monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
         app,
@@ -279,8 +305,64 @@ def test_cli_markdown_include_summary_only(tmp_path):
         ],
     )
 
+    expected_file = tmp_path / "aniwa_report.md"
+
     assert result.exit_code == 0
-    assert "## Summary" in result.output
-    assert "## Columns" not in result.output
-    assert "## Data Quality" not in result.output
-    assert "## Insights" not in result.output
+    assert "Markdown report written to" in result.output
+    assert expected_file.exists()
+
+    content = expected_file.read_text(encoding="utf-8")
+    assert "## Summary" in content
+    assert "## Columns" not in content
+    assert "## Data Quality" not in content
+    assert "## Insights" not in content
+
+
+def test_cli_json_output_dir_creates_json_file(tmp_path):
+    csv_path = tmp_path / "customers.csv"
+    output_dir = tmp_path / "reports"
+
+    write_csv(csv_path)
+
+    result = runner.invoke(
+        app,
+        [
+            str(csv_path),
+            "--report",
+            "json",
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+
+    expected_file = output_dir / "aniwa_report.json"
+
+    assert result.exit_code == 0
+    assert expected_file.exists()
+    assert "JSON report written to" in result.output
+    assert expected_file.read_text(encoding="utf-8").startswith("{")
+
+
+def test_cli_html_output_dir_creates_html_file(tmp_path):
+    csv_path = tmp_path / "customers.csv"
+    output_dir = tmp_path / "reports"
+
+    write_csv(csv_path)
+
+    result = runner.invoke(
+        app,
+        [
+            str(csv_path),
+            "--report",
+            "html",
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+
+    expected_file = output_dir / "aniwa_report.html"
+
+    assert result.exit_code == 0
+    assert expected_file.exists()
+    assert "HTML report written to" in result.output
+    assert "<!DOCTYPE html>" in expected_file.read_text(encoding="utf-8")

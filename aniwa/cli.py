@@ -82,6 +82,32 @@ def resolve_sections(
 
     return all_sections
 
+def resolve_output_path(
+    output: str | None,
+    output_dir: str | None,
+    report: ReportFormat,
+) -> str | None:
+    if output and output_dir:
+        raise typer.BadParameter("Use either --output or --output-dir, not both.")
+
+    if output:
+        return output
+
+    if output_dir:
+        return str(Path(output_dir) / resolve_default_name(report))
+
+    return resolve_default_name(report)
+
+def resolve_default_name(report: ReportFormat) -> str:
+    default_names = {
+        ReportFormat.json: "aniwa_report.json",
+        ReportFormat.html: "aniwa_report.html",
+        ReportFormat.excel: "aniwa_report.xlsx",
+        ReportFormat.markdown: "aniwa_report.md",
+        ReportFormat.pdf: "aniwa_report.pdf",
+    }
+
+    return default_names.get(report, "aniwa_report.txt")
 
 def format_file_size(size_bytes: int) -> str:
     if size_bytes < 1024:
@@ -185,6 +211,12 @@ def profile(
         "-o",
         help="Output file path.",
     ),
+    output_dir: str | None = typer.Option(
+        None,
+        "--output-dir",
+        "-od",
+        help="Output directory for reports. Ignored if --output is specified.",
+    ),
     mode: ProfileMode = typer.Option(
         ProfileMode.deep,
         "--mode",
@@ -214,6 +246,8 @@ def profile(
     Profile a dataset.
     """
     sections = resolve_sections(include, exclude)
+
+    output = resolve_output_path(output, output_dir, report)
 
     dataset_path = Path(path)
 
@@ -259,8 +293,6 @@ def profile(
         return
 
     if report == ReportFormat.html:
-        if output is None:
-            output = "aniwa_report.html"
 
         try:
             render_html_report(dataset_profile, output, template=template)
@@ -271,8 +303,6 @@ def profile(
         return
 
     if report == ReportFormat.excel:
-        if output is None:
-            output = "aniwa_report.xlsx"
 
         try:
             render_excel_report(dataset_profile, output)
@@ -293,8 +323,6 @@ def profile(
         return
 
     if report == ReportFormat.pdf:
-        if output is None:
-            output = "aniwa_report.pdf"
 
         try:
             render_pdf_report(dataset_profile, output, template=template)
